@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
         }
 
         if (fstat(mfd, &infFisier) == -1) {
-            perror("Unable to get file information");
+            perror("Eroare de a lua informatii despre fisier!!!");
             exit(-1);
         }
 
