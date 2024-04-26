@@ -81,8 +81,9 @@ void citesteDirector(DIR* director, char* cale,int fd){
 int main(int argc, char* argv[]){
 
     int fd =0,mfd=0;
-    char *string=(char*)malloc(sizeof(char));
+    char string[100];
     char numePtTextFile[30];
+    char numePtTemporaryTextFile[40];
     struct stat infFisier;
 
     int n;
@@ -94,6 +95,16 @@ int main(int argc, char* argv[]){
         }
 
         if(n==0){
+            
+            strcpy(string,argv[i]);
+
+            char *p=strtok(string,"/");
+            while(p){
+                strcpy(numePtTextFile,p);
+                strcat(numePtTextFile,".txt");
+                p=strtok(NULL,"/");
+            }
+
             printf("Sunt in fisierul %d\n",i);
             fd = open("temporary.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd == -1) {
@@ -107,15 +118,6 @@ int main(int argc, char* argv[]){
                 exit(-1);
             }
             citesteDirector(director,argv[i],fd);
-
-            strcpy(string,argv[i]);
-
-            char *p=strtok(string,"/");
-            while(p){
-                strcpy(numePtTextFile,p);
-                strcat(numePtTextFile,".txt\0");
-                p=strtok(NULL,"/");
-            }
 
             mfd = open(numePtTextFile,  O_RDWR | O_CREAT, S_IRUSR | S_IWUSR, 0644);
             if (mfd == -1) { 
