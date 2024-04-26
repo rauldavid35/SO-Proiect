@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
         if(n==0){
             printf("Sunt in fisierul %d\n",i);
             fd = open("temporary.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd == -1) { 
+            if (fd == -1) {
                 perror("Eroare deschidere fisier temporar!!!");
                 exit(-1);
             }
@@ -106,7 +106,6 @@ int main(int argc, char* argv[]){
                 perror("Calea catre director nu este corecta/directorul nu s-a putut deschide.\n");
                 exit(-1);
             }
-
             citesteDirector(director,argv[i],fd);
 
             strcpy(string,argv[i]);
@@ -227,15 +226,16 @@ int main(int argc, char* argv[]){
                     printf("Fisierul nu s-a schimbat!!!\n");
                 }
             }
-        }
-        int waitVariable;
-        int status;
-        for(int i=1;i<argc;i++){
-            waitVariable=wait(&status);
-            printf("Procesul s-a terminat cu statusul : %d\n",status);
+
+            exit(0);
         }
     }
-    
+    int waitVariable;
+    int status;
+    for(int i=1;i<argc;i++){
+        waitVariable=wait(&status);
+        printf("Procesul %d s-a terminat cu statusul : %d\n",waitVariable,status);
+    }
     return 0;
 }
 
