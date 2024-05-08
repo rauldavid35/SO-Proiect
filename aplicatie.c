@@ -80,15 +80,15 @@ int main(int argc, char* argv[]){
     char numePtTemporaryTextFile[40];
     struct stat infFisier;
 
-    int n;
+    int pid;
 
     for(int i=1;i<argc;i++){
-        if((n=fork())==-1){
+        if((pid=fork())==-1){
             printf("Eroare creare proces!!!\n");
             exit(-1);
         }
 
-        if(n==0){
+        if(pid==0){
             
             strcpy(string,argv[i]);
 
@@ -102,13 +102,13 @@ int main(int argc, char* argv[]){
 
             strcat(numePtTemporaryTextFile,"TEMPORARY.txt");
 
-            printf("Sunt in fisierul %d\n",i);
+            printf("Snapshot for Directory %d created successfully.\n", i);
             fd = open(numePtTemporaryTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd == -1) {
                 perror("Eroare deschidere fisier temporar!!!");
                 exit(-1);
             }
-            printf("Verificare director : %s\n",argv[i]);
+            //printf("Verificare director : %s\n",argv[i]);
             DIR* director;
             if(!(director = opendir(argv[i]))){
                 perror("Calea catre director nu este corecta/directorul nu s-a putut deschide.\n");
@@ -193,7 +193,6 @@ int main(int argc, char* argv[]){
                 close(fd);
 
                 if(diferit){
-                    printf("Fisierul s-a schimbat!!!\n");
                     mfd = open(numePtTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                     if (mfd == -1) {
                         perror("Eroare deschidere fisier temporar!!!");
@@ -218,14 +217,8 @@ int main(int argc, char* argv[]){
                             exit(-1);
                         }
                     }
-
-                    printf("Informatia a fost copiata din fisierul temporar in %s\n", numePtTextFile);
-                }
-                else{
-                    printf("Fisierul nu s-a schimbat!!!\n");
                 }
             }
-
             exit(0);
         }
     }
@@ -233,7 +226,7 @@ int main(int argc, char* argv[]){
     int status;
     for(int i=1;i<argc;i++){
         waitVariable=wait(&status);
-        printf("Procesul %d s-a terminat cu statusul : %d\n",waitVariable,status);
+        printf("Child process %d terminated with PID %d and exit code %d. \n",i,waitVariable,status);
     }
     return 0;
 }
