@@ -19,7 +19,7 @@ void citesteDirector(DIR* director, char* cale,int fd){
         if(strcmp(aux->d_name,".") && strcmp(aux->d_name,"..")){
             if(aux->d_type == DT_DIR){
                 DIR* d;
-                char* nume = malloc(sizeof(char)*(strlen(cale)+1+strlen(aux->d_name)));
+                char nume[1000];
                 strcpy(nume,cale);
                 strcat(nume,"/");
                 strcat(nume,aux->d_name);
@@ -37,19 +37,16 @@ void citesteDirector(DIR* director, char* cale,int fd){
 
                 citesteDirector(d,nume,fd);
 
-                char *bufferDir=malloc(sizeof(char)*4096);
+                char bufferDir[4096];
                 sprintf(bufferDir,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                 if((write(fd,bufferDir,strlen(bufferDir)))==-1){
                     perror("Eroare scriere date director!!!\n");
                     exit(-1);
                 }
-
-                free(bufferDir);
-                free(nume);
             }
-            else if(aux->d_type == DT_REG){
-                char* nume = malloc(sizeof(char)*(strlen(cale)+1+strlen(aux->d_name)));
+            else if(aux->d_type == DT_REG || aux->d_type == DT_LNK){
+                char nume[1000];
                 strcpy(nume,cale);
                 strcat(nume,"/");
                 strcat(nume,aux->d_name);
@@ -59,16 +56,13 @@ void citesteDirector(DIR* director, char* cale,int fd){
                     exit(-1);
                 }
 
-                char *bufferReg=malloc(sizeof(char)*4096);
+                char bufferReg[4096];
                 sprintf(bufferReg,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                 if((write(fd,bufferReg,strlen(bufferReg)))==-1){
                     perror("Eroare scriere date fisier text!!!\n");
                     exit(-1);
                 }
-
-                free(bufferReg);
-                free(nume);
             }
         }
     }
@@ -101,12 +95,15 @@ int main(int argc, char* argv[]){
             char *p=strtok(string,"/");
             while(p){
                 strcpy(numePtTextFile,p);
+                strcpy(numePtTemporaryTextFile,p);
                 strcat(numePtTextFile,".txt");
                 p=strtok(NULL,"/");
             }
 
+            strcat(numePtTemporaryTextFile,"TEMPORARY.txt");
+
             printf("Sunt in fisierul %d\n",i);
-            fd = open("temporary.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            fd = open(numePtTemporaryTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd == -1) {
                 perror("Eroare deschidere fisier temporar!!!");
                 exit(-1);
@@ -140,7 +137,7 @@ int main(int argc, char* argv[]){
                     exit(-1);
                 }
 
-                fd = open("temporary.txt", O_RDONLY);
+                fd = open(numePtTemporaryTextFile, O_RDONLY);
                 if (fd == -1) {
                     perror("Eroare deschidere fisier temporar!!!");
                     exit(-1);
@@ -158,7 +155,7 @@ int main(int argc, char* argv[]){
                     }
                 }
 
-                printf("Informatia a fost copiata din temporary.txt in %s\n", numePtTextFile);
+                printf("Informatia a fost copiata din fisierul temporar in %s\n", numePtTextFile);
 
                 close(fd);
                 close(mfd);
@@ -169,7 +166,7 @@ int main(int argc, char* argv[]){
                     exit(-1);
                 }
 
-                fd = open("temporary.txt", O_RDONLY);
+                fd = open(numePtTemporaryTextFile, O_RDONLY);
                 if (fd == -1) {
                     perror("Eroare deschidere fisier temporar!!!");
                     exit(-1);
@@ -203,7 +200,7 @@ int main(int argc, char* argv[]){
                         exit(-1);
                     }
 
-                    fd = open("temporary.txt", O_RDONLY);
+                    fd = open(numePtTemporaryTextFile, O_RDONLY);
                     if (fd == -1) {
                         perror("Eroare deschidere fisier temporar!!!");
                         exit(-1);
@@ -222,7 +219,7 @@ int main(int argc, char* argv[]){
                         }
                     }
 
-                    printf("Informatia a fost copiata din temporary.txt in %s\n", numePtTextFile);
+                    printf("Informatia a fost copiata din fisierul temporar in %s\n", numePtTextFile);
                 }
                 else{
                     printf("Fisierul nu s-a schimbat!!!\n");
@@ -240,6 +237,3 @@ int main(int argc, char* argv[]){
     }
     return 0;
 }
-
-//trebuie sa facem cu fork , ca la finalul parcurgerii sa se executa toate procesele deodata. Gen nu cum e pana acuma , merg prin fiecare folder si 
-//se executa procesul. Ci parcurg fiecare folder , creez proces pentru el , iar dupa ce a parcurs forul , se parcurg toate proceele create deodata
