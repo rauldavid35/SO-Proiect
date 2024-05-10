@@ -16,7 +16,7 @@ typedef struct {
 
 }FisiereFolder;
 
-FisiereFolder fisiereFolder[10];
+FisiereFolder fisiereFolder[10]={0};
 
 int nrFolder=-1;
 
@@ -24,6 +24,8 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
     struct dirent* aux;
     struct stat infFisier;
     errno=0;
+
+    nrFolder++;
 
     while((aux = readdir(director))!=NULL && errno==0){
         if(strcmp(aux->d_name,".") && strcmp(aux->d_name,"..")){
@@ -106,7 +108,7 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                             close(pipefd[1]);
                         
-                            while((nr=read(pipefd[0],buffer,sizeof(buffer)))!=0){
+                            if((nr=read(pipefd[0],buffer,sizeof(buffer)))!=0){
 
                                 buffer[nr]='\0';
                                 strcpy(nouaLocatie,malitiousFolder);
@@ -117,12 +119,15 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                                 if(strcmp(buffer,"SAFE")){
                                     isMalitious=1;
+                                    fisiereFolder[nrFolder].fisiereMalitioase++;
                                     printf("Este malitios!!!\n");
                                     if(rename(nume,nouaLocatie)!=0){
-                                        printf("%s\n",aux->d_name);
+                                        printf("%s\n",nouaLocatie);
                                         perror("Eroare mutare fisier malitios!!\n");
                                         exit(-1);
                                     }
+                                    else
+                                        printf("Am redenumit fisierul %s\n",nume);
                                 }
                             }
 
@@ -361,7 +366,7 @@ int main(int argc, char* argv[]){
     j=1;
     for(;i<argc;i++){
         waitVariable=wait(&status);
-        printf("Child process %d terminated with PID %d and exit code %d with X possible malicious folders. \n",j,waitVariable,status);
+        printf("Child process %d terminated with PID %d and exit code %d with %d possible malicious folders. \n",j,waitVariable,status,fisiereFolder[j-1].fisiereMalitioase);
         j++;
     }
     return 0;
