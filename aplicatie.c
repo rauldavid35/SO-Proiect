@@ -1,3 +1,14 @@
+////////////////////////////////////////////////////////////
+//Programul primeste foldere , se parcurg recursiv pentru a creea snapshot-uri pentru fiecare in parte
+//Se verifica daca acesta a fost schimbat sau nu , si se salveaza/creeaza in caz pozitiv
+////////////////////////////////////////////////////////////
+//Se compileaza cu gcc -Wall -o rez aplicatia1.c
+////////////////////////////////////////////////////////////
+//Se poate rula in 3 moduri:
+//1. ./rez dir1 dir2 dir3...
+//2. ./rez -o outFolder dir1 dir2 dir3...
+//3. ./rez -o outFolder -s malitiousFolder dir1 dir2 dir3...
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -11,21 +22,21 @@
 #include <errno.h>
 
 typedef struct {
-
-    int fisiereMalitioase;
+    char nume[1000];
+    long int mtime;
+    int Dir;
+    mode_t mode;
+    int drepturi;
 
 }FisiereFolder;
 
-FisiereFolder fisiereFolder[10]={0};
-
-int nrFolder=-1;
+FisiereFolder fisiereFolder[1000];
+int counterFisiere=0;
 
 void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolder){
     struct dirent* aux;
     struct stat infFisier;
     errno=0;
-
-    nrFolder++;
 
     while((aux = readdir(director))!=NULL && errno==0){
         if(strcmp(aux->d_name,".") && strcmp(aux->d_name,"..")){
@@ -51,12 +62,15 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                 char bufferDir[4096];
 
+                strcpy(fisiereFolder[counterFisiere].nume,cale);
+                fisiereFolder[counterFisiere].Dir=1;
                 sprintf(bufferDir,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                 if((write(fd,bufferDir,strlen(bufferDir)))==-1){
                     perror("Eroare scriere date director!!!\n");
                     exit(-1);
                 }
+                counterFisiere++;
             }
             else if(aux->d_type == DT_REG || aux->d_type == DT_LNK){
                 int isMalitious=0;
@@ -76,10 +90,10 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
                     int nr=0;
                     char nouaLocatie[1000];
                     //printf("Avem malitious folder, incepem cautarea!!!\n");
-                    printf("%d %s\n",infFisier.st_mode,aux->d_name);
-                    if(infFisier.st_mode!=33279){ //la mine pe laptop merge daca egalez infFisier.st_mode!=33279
+                    printf("%d\n",infFisier.st_mode);
+                    if(infFisier.st_mode!=33279){
 
-                        printf("Fisierul nu are permisiuni!!!\n");
+                        printf("Fisierul este suspect!!!\n");
                         int pipefd[2];
 
                         if(pipe(pipefd)<0){
@@ -95,11 +109,11 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
                             dup2(pipefd[1],1);
                             dup2(pipefd[1],2);
 
+                            close(pipefd[1]);
+
                             execlp("/mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/verificareMalitios.sh","/mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/verificareMalitios.sh",nume,NULL);
 
-                            perror("Eroare la execlp!!!\n");
-
-                            exit(-1);
+                            printf("Eroare la execlp!!!\n");
                         }
                         else{
                             int status;
@@ -109,8 +123,7 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
                             close(pipefd[1]);
                         
                             if((nr=read(pipefd[0],buffer,sizeof(buffer)))!=0){
-
-                                buffer[nr]='\0';
+                                buffer[strlen(nume)]='\0';
                                 strcpy(nouaLocatie,malitiousFolder);
                                 strcat(nouaLocatie,"/");
                                 strcat(nouaLocatie,aux->d_name);
@@ -119,15 +132,15 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                                 if(strcmp(buffer,"SAFE")){
                                     isMalitious=1;
-                                    fisiereFolder[nrFolder].fisiereMalitioase++;
-                                    printf("Este malitios!!!\n");
+                                    buffer[4]=' ';
+                                    printf("%s ||| %s\n",buffer,nume);
                                     if(rename(nume,nouaLocatie)!=0){
-                                        printf("%s\n",nouaLocatie);
                                         perror("Eroare mutare fisier malitios!!\n");
                                         exit(-1);
                                     }
-                                    else
-                                        printf("Am redenumit fisierul %s\n",nume);
+                                }
+                                else{
+                                    printf("%s ||| %s\n",buffer,nume);
                                 }
                             }
 
@@ -144,12 +157,17 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                     char bufferReg[4096];
 
+                    strcpy(fisiereFolder[counterFisiere].nume,nume);
+                    fisiereFolder[counterFisiere].Dir=0;
+                    fisiereFolder[counterFisiere].mtime=infFisier.st_mtime;
+                    fisiereFolder[counterFisiere].mode=infFisier.st_mode;
                     sprintf(bufferReg,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                     if((write(fd,bufferReg,strlen(bufferReg)))==-1){
                         perror("Eroare scriere date fisier text!!!\n");
                         exit(-1);
                     }
+                    counterFisiere++;
                 }
             }
         }
@@ -274,11 +292,7 @@ void verificareFisiere(const char* numeFileSimplu,const char* numePtTemporaryTex
                     exit(-1);
                 }
             }
-
-            printf("S-a gasit o schimbare , se rescrie!!!\n");
         }
-
-        printf("Fisierul %s a fost rescris!!!\n",numePtTextFile);
     }
 }
 
@@ -288,10 +302,6 @@ int main(int argc, char* argv[]){
     char numePtTextFile[1000];
     char numePtTemporaryTextFile[120];
     char numeFileSimplu[100];
-
-    for(int i=0;i<10;i++){
-        fisiereFolder[i].fisiereMalitioase=0;
-    }
 
     const char* outputFolder ="";
     const char* malitiousFolder="";
@@ -344,10 +354,15 @@ int main(int argc, char* argv[]){
                     perror("Calea catre director nu este corecta/directorul nu s-a putut deschide.\n");
                     exit(-1);
                 }
-
                 citesteDirector(director,argv[i],fd,malitiousFolder);
 
+                //printf("%s\n",fisiereFolder[2].nume);
+
+
+
                 verificareFisiere(numeFileSimplu,numePtTemporaryTextFile,outputFolder,malitiousFolder);
+
+
 
                 exit(0);
             }
@@ -366,7 +381,7 @@ int main(int argc, char* argv[]){
     j=1;
     for(;i<argc;i++){
         waitVariable=wait(&status);
-        printf("Child process %d terminated with PID %d and exit code %d with %d possible malicious folders. \n",j,waitVariable,status,fisiereFolder[j-1].fisiereMalitioase);
+        printf("Child process %d terminated with PID %d and exit code %d. \n",j,waitVariable,status);
         j++;
     }
     return 0;
