@@ -8,6 +8,9 @@
 //1. ./rez dir1 dir2 dir3...
 //2. ./rez -o outFolder dir1 dir2 dir3...
 //3. ./rez -o outFolder -s malitiousFolder dir1 dir2 dir3...
+////////////////////////////////////////////////////////////
+//Cum rulez eu cu fisierele ce sunt in folder:
+// ./rez -o /mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/outFolder -s /mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/malitiousFolder /mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/Folder1 /mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/Folder2 /mnt/c/Users/rauld/OneDrive/Desktop/VisualStudio/LimbajulC/Anul2/SO_Proiect/Folder3
 
 #include <sys/types.h>
 #include <sys/stat.h>
