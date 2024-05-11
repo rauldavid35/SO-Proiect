@@ -121,9 +121,8 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                                 //printf("%s\n",nouaLocatie);
 
-                                if(strcmp(buffer,"SAFE\0")){ //daca fisierul a iesit ca fiind safe din shell script , atunci printam mesaj aferent
+                                if(strcmp(buffer,nume)==0){ //daca fisierul a iesit ca fiind unsafe din shell script , atunci mutam
                                     isMalitious=1; //setam valoarea pe 1 , sa stim ca este malitios
-                                    buffer[4]=' ';
                                     //printf("%s ||| %s\n",buffer,nume);
                                     if(rename(nume,nouaLocatie)!=0){ //muta fisierul din folderul sau in folderul pentru fisiere malitioase
                                         perror("Eroare mutare fisier malitios!!\n");
@@ -131,7 +130,11 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
                                     }
                                 }
                                 else{
-                                   printf("%s ||| %s\n",buffer,nume);
+                                    buffer[strlen(nume)-2]='\0';
+                                    if(strcmp(buffer,"SAFE\n")==0){
+                                        isMalitious=0;
+                                        //printf("%s\n",buffer);
+                                    }
                                 }
                             }
 
