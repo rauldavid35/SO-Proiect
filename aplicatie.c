@@ -24,16 +24,6 @@
 #include <time.h>
 #include <errno.h>
 
-typedef struct {
-    char nume[1000];
-    long int mtime;
-    int Dir;
-    mode_t mode;
-    int drepturi;
-
-}FisiereFolder;
-
-FisiereFolder fisiereFolder[1000];
 int counterFisiere=0;
 
 void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolder){
@@ -64,10 +54,6 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
                 citesteDirector(d,nume,fd,malitiousFolder);
 
                 char bufferDir[4096];
-
-                strcpy(fisiereFolder[counterFisiere].nume,cale);
-                fisiereFolder[counterFisiere].Dir=1;
-                sprintf(bufferDir,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                 if((write(fd,bufferDir,strlen(bufferDir)))==-1){
                     perror("Eroare scriere date director!!!\n");
@@ -160,16 +146,14 @@ void citesteDirector(DIR* director, char* cale,int fd,const char* malitiousFolde
 
                     char bufferReg[4096];
 
-                    strcpy(fisiereFolder[counterFisiere].nume,nume);
-                    fisiereFolder[counterFisiere].Dir=0;
-                    fisiereFolder[counterFisiere].mtime=infFisier.st_mtime;
-                    fisiereFolder[counterFisiere].mode=infFisier.st_mode;
                     sprintf(bufferReg,"%s : %s : %ld\n",cale,aux->d_name,infFisier.st_mtime);
 
                     if((write(fd,bufferReg,strlen(bufferReg)))==-1){
                         perror("Eroare scriere date fisier text!!!\n");
                         exit(-1);
                     }
+                }
+                else{
                     counterFisiere++;
                 }
             }
@@ -194,6 +178,8 @@ void verificareFisiere(const char* numeFileSimplu,const char* numePtTemporaryTex
         strcat(numePtTextFile,".txt");
     }
 
+    printf("%s\n",numePtTextFile);
+
     mfd = open(numePtTextFile,  O_RDWR | O_CREAT, S_IRUSR | S_IWUSR, 0644);
     if (mfd == -1) { 
         perror("Eroare deschidere fisier temporar2!!!");
@@ -209,6 +195,7 @@ void verificareFisiere(const char* numeFileSimplu,const char* numePtTemporaryTex
     close(fd);
 
     if (infFisier.st_size == 0) {
+
         mfd = open(numePtTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (mfd == -1) {
             perror("Eroare deschidere fisier temporar!!!");
@@ -271,6 +258,7 @@ void verificareFisiere(const char* numeFileSimplu,const char* numePtTemporaryTex
         close(fd);
 
         if(diferit){
+            printf("%s\n",numePtTextFile);
             mfd = open(numePtTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (mfd == -1) {
                 perror("Eroare deschidere fisier temporar!!!");
@@ -309,83 +297,103 @@ int main(int argc, char* argv[]){
     const char* outputFolder ="";
     const char* malitiousFolder="";
 
+    int isOutput=0;
+    int isMalitious=0;
+
     int pid;
 
     int j=1;
 
     for(int i=1;i<argc;i++){
-        if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
-            outputFolder = argv[i + 1];
-            i++;
-            if(strcmp(argv[i+1], "-s")==0 && i + 2 < argc){
-                malitiousFolder=argv[i + 2];
-                i+=2;
+        if(!strcmp(argv[i],"-o")){
+            isOutput++;
+        }
+        if(!strcmp(argv[i],"-s")){
+            isMalitious++;
+        }
+    }
+
+    int fisiereFolder[100];
+    for(int i=0;i<100;i++){
+        fisiereFolder[i]=0;
+    }
+
+    if(!strcmp(argv[1],"-s") || isOutput>1 || isMalitious>1){
+        printf("A-ti introdus date necorespunzatoare!!!\n");
+        return 0;
+    }
+    else{
+        for(int i=1;i<argc;i++){
+            if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
+                outputFolder = argv[i + 1];
+                i++;
+                if(strcmp(argv[i+1], "-s")==0 && i + 2 < argc){
+                    malitiousFolder=argv[i + 2];
+                    i+=2;
+                }
+            }
+            else{
+                //printf("%s\n",malitiousFolder);
+
+                if((pid=fork())==-1){
+                    printf("Eroare creare proces!!!\n");
+                    exit(-1);
+                }
+
+                if(pid==0){
+            
+                    strcpy(string,argv[i]);
+
+                    char *p=strtok(string,"/");
+                    while(p){
+                        strcpy(numeFileSimplu,p);
+                        strcpy(numePtTextFile,p);
+                        strcpy(numePtTemporaryTextFile,p);
+                        p=strtok(NULL,"/");
+                    }
+
+                    strcat(numePtTemporaryTextFile,"TEMPORARY.txt");
+
+                    printf("Snapshot for Directory %d created successfully.\n", j);
+                    fd = open(numePtTemporaryTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (fd == -1) {
+                        perror("Eroare deschidere fisier temporar1!!!");
+                        exit(-1);
+                    }
+                    //printf("Verificare director : %s\n",argv[i]);
+                    DIR* director;
+                    if(!(director = opendir(argv[i]))){
+                        perror("Calea catre director nu este corecta/directorul nu s-a putut deschide.\n");
+                        exit(-1);
+                    }
+                    citesteDirector(director,argv[i],fd,malitiousFolder);
+
+                    printf("Counter Malitioase : %d\n", counterFisiere);
+
+                    fisiereFolder[i]=counterFisiere;
+
+                    verificareFisiere(numeFileSimplu,numePtTemporaryTextFile,outputFolder,malitiousFolder);
+
+                    exit(0);
+                }
+                j++;
             }
         }
-        else{
 
-            //printf("%s\n",malitiousFolder);
-
-            if((pid=fork())==-1){
-                printf("Eroare creare proces!!!\n");
-                exit(-1);
-            }
-
-            if(pid==0){
-            
-                strcpy(string,argv[i]);
-
-                char *p=strtok(string,"/");
-                while(p){
-                    strcpy(numeFileSimplu,p);
-                    strcpy(numePtTextFile,p);
-                    strcpy(numePtTemporaryTextFile,p);
-                    p=strtok(NULL,"/");
-                }
-
-                strcat(numePtTemporaryTextFile,"TEMPORARY.txt");
-
-                printf("Snapshot for Directory %d created successfully.\n", j);
-                fd = open(numePtTemporaryTextFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                if (fd == -1) {
-                    perror("Eroare deschidere fisier temporar1!!!");
-                    exit(-1);
-                }
-                //printf("Verificare director : %s\n",argv[i]);
-                DIR* director;
-                if(!(director = opendir(argv[i]))){
-                    perror("Calea catre director nu este corecta/directorul nu s-a putut deschide.\n");
-                    exit(-1);
-                }
-                citesteDirector(director,argv[i],fd,malitiousFolder);
-
-                //printf("%s\n",fisiereFolder[2].nume);
-
-
-
-                verificareFisiere(numeFileSimplu,numePtTemporaryTextFile,outputFolder,malitiousFolder);
-
-
-
-                exit(0);
-            }
+        int waitVariable;
+        int status;
+        int i=1;
+        if(strcmp(outputFolder,"")!=0)
+            i=3;
+        if(strcmp(malitiousFolder,"")!=0){
+            i=5;
+        }
+        j=1;
+        for(;i<argc;i++){
+            waitVariable=wait(&status);
+            printf("Child process %d terminated with PID %d , %d possible malitious files and exit code %d. \n",j,waitVariable,fisiereFolder[i],status);
             j++;
         }
-    }
-
-    int waitVariable;
-    int status;
-    int i=1;
-    if(strcmp(outputFolder,"")!=0)
-        i=3;
-    if(strcmp(malitiousFolder,"")!=0){
-        i=5;
-    }
-    j=1;
-    for(;i<argc;i++){
-        waitVariable=wait(&status);
-        printf("Child process %d terminated with PID %d and exit code %d. \n",j,waitVariable,status);
-        j++;
     }
     return 0;
 }
